@@ -105,6 +105,27 @@ app.get('/api/complaints', (req, res) => {
   res.json(data.complaints);
 });
 
+app.post('/api/auth/login', (req, res) => {
+  const email = normalizeAdminIdentity(req.body?.email);
+  const password = String(req.body?.password || '');
+  const data = readData();
+  const user = data.users.find(item =>
+    normalizeAdminIdentity(item.email) === email ||
+    normalizeAdminIdentity(item.username) === email
+  );
+
+  if (!user) {
+    return res.status(404).json({ error: 'Account not found. Please register first.' });
+  }
+
+  if (!password || user.password !== password) {
+    return res.status(401).json({ error: 'Incorrect password.' });
+  }
+
+  const { password: savedPassword, ...safeUser } = user;
+  res.json({ user: safeUser });
+});
+
 app.post('/api/auth/admin-login', (req, res) => {
   const data = readData();
   const user = data.users.find(item => item.isHost === true || item.role === 'admin') || data.users[0];

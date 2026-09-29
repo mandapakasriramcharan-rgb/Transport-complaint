@@ -610,19 +610,24 @@ async function handleLogin(event) {
     return;
   }
 
-  const users = Store.users();
-  const user = users.find(item =>
-    normalize(item.email) === email ||
-    normalize(item.username) === email
-  );
+  let user;
 
-  if (!user) {
-    setMessage(message, "Account not found. Please register first.", "error");
-    return;
-  }
+  try {
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+    const result = await response.json();
 
-  if (user.password && user.password !== password) {
-    setMessage(message, "Incorrect password.", "error");
+    if (!response.ok) {
+      setMessage(message, result.error || "Could not sign in.", "error");
+      return;
+    }
+
+    user = result.user;
+  } catch (error) {
+    setMessage(message, "Could not reach the shared server. Try again when it is available.", "error");
     return;
   }
 
@@ -649,7 +654,7 @@ function handleAdminLogin(event) {
 
   const form = event.currentTarget;
   const email = safeText($("#adminLoginEmail", form)?.value).toLowerCase() || "admin@routewise.com";
-  const password = safeText($("#adminLoginPassword", form)?.value) || "admin123";
+  const password = safeText($("#adminLoginPassword", form)?.value);
   const message = byId("adminLoginMessage");
 
   fetch("/api/auth/admin-login", {
